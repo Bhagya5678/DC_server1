@@ -19,6 +19,7 @@ const client = new MongoClient(MONGODB_URI, { useNewUrlParser: true, useUnifiedT
 // Connect to MongoDB Atlas
 let db;
 let collection;
+let serverNumber = 1; // Declare serverNumber in the main scope
 
 const connectToMongoDB = async () => {
     try {
@@ -83,7 +84,7 @@ app.get('/api/time', (req, res) => {
 app.get('/api/inventory', async (req, res) => {
     try {
         const inventory = await collection.find().toArray();
-        res.json({ inventory });
+        res.json({ serverNumber, inventory });
     } catch (err) {
         console.error('Error fetching inventory data from MongoDB:', err);
         res.status(500).send('Internal Server Error');
