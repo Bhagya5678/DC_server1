@@ -19,7 +19,7 @@ const client = new MongoClient(MONGODB_URI, { useNewUrlParser: true, useUnifiedT
 // Connect to MongoDB Atlas
 let db;
 let collection;
-let serverNumber = "Mumbai; // Declare serverNumber in the main scope
+let serverNumber = "Mumbai"; // Declare serverNumber in the main scope
 
 const connectToMongoDB = async () => {
     try {
