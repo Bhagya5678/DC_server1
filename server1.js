@@ -19,7 +19,7 @@ const client = new MongoClient(MONGODB_URI, { useNewUrlParser: true, useUnifiedT
 // Connect to MongoDB Atlas
 let db;
 let collection;
-let serverNumber = "Mumbai"; // Declare serverNumber in the main scope
+let accessCollection;
 
 const connectToMongoDB = async () => {
     try {
@@ -29,9 +29,11 @@ const connectToMongoDB = async () => {
         
         db = client.db(DATABASE_NAME);
         collection = db.collection(COLLECTION_NAME);
+        
+        // Connect to the "access" collection
+        accessCollection = db.collection("access");
     } catch (err) {
         console.error('Error connecting to MongoDB:', err);
-        // Handle error or throw it for higher level handling
         throw err;
     }
 };
@@ -58,16 +60,29 @@ app.use(cors()); // Enable CORS for all routes
 // Routes
 
 // Mutual exclusion
-let exclusiveThreadId = null;
-app.get('/check-access', (req, res) => {
-    res.json({ threadId: exclusiveThreadId });
+app.get('/check-access', async (req, res) => {
+    try {
+        // Fetch the threadId from the "access" collection
+        const accessDoc = await accessCollection.findOne();
+        const threadId = accessDoc ? accessDoc.threadId : null;
+        res.json({ threadId });
+    } catch (err) {
+        console.error('Error fetching access data from MongoDB:', err);
+        res.status(500).send('Internal Server Error');
+    }
 });
 
-app.post('/grant-access', (req, res) => { 
+app.post('/grant-access', async (req, res) => { 
     const { threadId } = req.body;
     console.log(threadId);  
-    exclusiveThreadId = threadId; // Grant exclusive access to the client with the provided threadId
-    res.json({ threadId: exclusiveThreadId });
+    try {
+        // Update the threadId in the "access" collection
+        await accessCollection.updateOne({}, { $set: { threadId } }, { upsert: true });
+        res.json({ threadId });
+    } catch (err) {
+        console.error('Error updating access data in MongoDB:', err);
+        res.status(500).send('Internal Server Error');
+    }
 });
 
 app.get('/init-thread', (req, res) => {
@@ -84,7 +99,7 @@ app.get('/api/time', (req, res) => {
 app.get('/api/inventory', async (req, res) => {
     try {
         const inventory = await collection.find().toArray();
-        res.json({ serverNumber, inventory });
+        res.json({ inventory });
     } catch (err) {
         console.error('Error fetching inventory data from MongoDB:', err);
         res.status(500).send('Internal Server Error');
